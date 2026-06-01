@@ -9,11 +9,8 @@ from rich.table import Table
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
 from rich.align import Align
 from rich.text import Text
-from rich.console import Console
 from copado_hx.config import get_auth
-
-# Use a standard console instance
-console = Console()
+from copado_hx.utils import console
 
 class DeploymentDashboard:
     def __init__(self, story_id: str, target_env: str, is_validation: bool = False):
@@ -223,7 +220,7 @@ class DeploymentDashboard:
         user = auth.get("username", "developer@copado.demo")
         
         grid = Table.grid(expand=True, padding=(0, 1))
-        grid.add_column(style="bold primary", width=15)
+        grid.add_column(style="primary", width=15)
         grid.add_column(style="secondary")
         
         grid.add_row("Triggered By", user)
