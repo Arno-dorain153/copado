@@ -275,7 +275,7 @@ def run_live_dashboard(story_id: str, target_env: str, is_validation: bool = Fal
     dashboard = DeploymentDashboard(story_id, target_env, is_validation)
     
     console.print("\n")
-    with Live(dashboard.make_layout(), screen=True, auto_refresh=False) as live:
+    with Live(dashboard.make_layout(), console=console, screen=True, auto_refresh=False) as live:
         while dashboard.progress_val < 100:
             time.sleep(2.0)
             dashboard.update_progress()
