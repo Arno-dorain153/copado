@@ -1,0 +1,8 @@
+[INFO] 2026-05-31T22:10:00Z - Initializing validation pipeline PL-101
+[INFO] 2026-05-31T22:10:02Z - Comparing Git branch dev/us-1234 with target release/uat
+[INFO] 2026-05-31T22:10:05Z - Static Code Scan via PMD: Clean.
+[INFO] 2026-05-31T22:10:08Z - Initiating Apex Unit Tests...
+[ERROR] 2026-05-31T22:10:12Z - Executed LeadScoringServiceTest.testLeadScoringCalculation - System.AssertException: Assertion Failed: Expected score: 85, Actual score: 20
+[ERROR] 2026-05-31T22:10:14Z - System.DmlException: Insert failed. First exception on row 0; first error: FIELD_CUSTOM_VALIDATION_EXCEPTION, Scoring model is inactive: []
+[WARNING] 2026-05-31T22:10:16Z - Average Code Coverage: 52%
+[ERROR] 2026-05-31T22:10:18Z - Validation failed with 2 critical errors and low coverage check metrics.

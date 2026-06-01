@@ -1,0 +1,8 @@
+[INFO] 2026-05-31T22:05:00Z - Initializing validation pipeline PL-101
+[WARNING] 2026-05-31T22:05:02Z - API version 48.0 is deprecated in manifest package.xml. Recommend upgrading to v60.0+.
+[INFO] 2026-05-31T22:05:04Z - Comparing Git branch dev/us-1235 with target release/uat
+[INFO] 2026-05-31T22:05:06Z - Static Code Scan via PMD: 2 minor warnings regarding naming conventions.
+[INFO] 2026-05-31T22:05:08Z - Initiating Apex Unit Tests...
+[INFO] 2026-05-31T22:05:12Z - Average Code Coverage: 73%
+[WARNING] 2026-05-31T22:05:13Z - Average Code Coverage 73% is below recommended target (75%), but above Salesforce minimum validation threshold (75% package level, 0% individual unless production).
+[INFO] 2026-05-31T22:05:15Z - Validation complete with warning flags.
