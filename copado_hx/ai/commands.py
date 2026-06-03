@@ -44,10 +44,30 @@ def ask_agent(
     # Simulated response generation based on prompts
     response = ""
     if agent_id == "plan":
-        response = (
-            "I analyzed User Story metadata scope. No file conflicts discovered in target environment branch UAT. "
-            "However, LWC controller references Apex method LeadScoringService.calculateScore which is currently in Draft state."
-        )
+        # Check if the class is implemented on disk in the force-app folder
+        import os
+        class_exists = False
+        paths_to_check = [
+            os.path.join("copado_hx", "force-app", "main", "default", "classes", "LeadScoringService.cls"),
+            os.path.join("force-app", "main", "default", "classes", "LeadScoringService.cls"),
+            os.path.join("a:\\copado\\copado_hx\\copado_hx\\force-app\\main\\default\\classes\\LeadScoringService.cls"),
+            os.path.join("a:\\copado_hx\\copado_hx\\force-app\\main\\default\\classes\\LeadScoringService.cls")
+        ]
+        for p in paths_to_check:
+            if os.path.exists(p):
+                class_exists = True
+                break
+                
+        if class_exists:
+            response = (
+                "I analyzed User Story metadata scope. No file conflicts discovered in target environment branch UAT. "
+                "The Apex method LeadScoringService.calculateScore is now successfully implemented on disk and ready to be committed!"
+            )
+        else:
+            response = (
+                "I analyzed User Story metadata scope. No file conflicts discovered in target environment branch UAT. "
+                "However, LWC controller references Apex method LeadScoringService.calculateScore which is currently in Draft state."
+            )
     elif agent_id == "build":
         response = (
             "Here is the generated Apex Class structure based on your request:\n\n"
@@ -74,11 +94,23 @@ def ask_agent(
             "    CloseBrowser"
         )
     elif agent_id == "release":
-        response = (
-            "Analyzing Job Execution error logs for US-1234: "
-            "The error 'FIELD_CUSTOM_VALIDATION_EXCEPTION' was triggered because your deployment package includes "
-            "ValidationRule:Opportunity.Check_Amount but misses custom metadata config 'Scoring_Settings__mdt' in the payload."
-        )
+        db = load_db()
+        story = get_story_by_id("US-1234")
+        metadata_changes = story.get("metadata_changes", []) if story else []
+        has_dependency = any("CustomMetadata:Scoring_Settings" in item for item in metadata_changes)
+        
+        if has_dependency:
+            response = (
+                "Analyzing Job Execution logs for US-1234: "
+                "No blockers found! The custom metadata dependency 'Scoring_Settings__mdt' is successfully included in the payload. "
+                "All checks passed. Ready for promotion!"
+            )
+        else:
+            response = (
+                "Analyzing Job Execution error logs for US-1234: "
+                "The error 'FIELD_CUSTOM_VALIDATION_EXCEPTION' was triggered because your deployment package includes "
+                "ValidationRule:Opportunity.Check_Amount but misses custom metadata config 'Scoring_Settings__mdt' in the payload."
+            )
     elif agent_id == "operate":
         response = (
             "Here is the change management plan for release Spring-2026:\n"
@@ -145,14 +177,32 @@ def chat_agent(
                 
             # Generates smart context responses
             reply = f"I've processed your message relative to [secondary]{story_ctx or 'Global'}[/secondary] branch context.\n"
-            if "conflict" in user_msg.lower():
-                reply += "Checking git history... branch matches Dev Sandbox clean. No conflict hazards found."
-            elif "code" in user_msg.lower() or "apex" in user_msg.lower():
-                reply += "Code snippet suggested: `public static void run() { System.debug('Headless execution'); }`"
-            elif "test" in user_msg.lower():
-                reply += "Test class skeleton generated: `LeadScoringServiceTest` under `force-app/main/default/classes/`."
+            if agent_id == "release":
+                if "conflict" in user_msg.lower():
+                    reply += "Analyzing branches... No merge conflicts detected between US-1234 branch (dev/us-1234) and target UAT branch."
+                elif "error" in user_msg.lower() or "blocker" in user_msg.lower() or "fail" in user_msg.lower():
+                    reply += "The validation blocker for US-1234 (missing custom metadata Scoring_Settings__mdt) has been resolved. The package is now clean and ready to deploy!"
+                elif "commit" in user_msg.lower():
+                    reply += "US-1234 has 3 tracked metadata changes (ApexClass:LeadScoringService, ApexClass:LeadScoringServiceTest, and CustomMetadata:Scoring_Settings). All changes are committed and synced."
+                elif "validat" in user_msg.lower() or "promote" in user_msg.lower() or "deploy" in user_msg.lower():
+                    reply += "US-1234 is currently in DEV-1. You can validate its promotion to UAT by running 'copado-hx promote --env UAT --validate --watch' outside this chat."
+                else:
+                    reply += "I can help you diagnose promotion issues, check for pipeline blockers, or prepare deployment packages for US-1234. What release task would you like to discuss?"
             else:
-                reply += "How would you like to proceed with committing or validating this scope inside the pipeline?"
+                if "conflict" in user_msg.lower():
+                    reply += "Checking git history... branch matches Dev Sandbox clean. No conflict hazards found."
+                elif "code" in user_msg.lower() or "apex" in user_msg.lower():
+                    reply += "Code snippet suggested: `public static void run() { System.debug('Headless execution'); }`"
+                elif "test" in user_msg.lower():
+                    reply += "Test class skeleton generated: `LeadScoringServiceTest` under `force-app/main/default/classes/`."
+                elif "both" in user_msg.lower() or ("commit" in user_msg.lower() and ("validat" in user_msg.lower() or "promote" in user_msg.lower() or "deploy" in user_msg.lower())):
+                    reply += "To do both:\n1. First commit your changes:\n[primary]copado-hx commit --message 'feat: implement lead scoring'[/primary]\n2. Then validate/promote your story:\n[primary]copado-hx promote --env UAT --validate --watch[/primary]"
+                elif "commit" in user_msg.lower():
+                    reply += "To commit these changes to your active story branch, you can exit this chat and run:\n[primary]copado-hx commit --message 'feat: implement lead scoring'[/primary]"
+                elif "validat" in user_msg.lower() or "promote" in user_msg.lower() or "deploy" in user_msg.lower():
+                    reply += "To validate or promote your story, exit this chat and run:\n[primary]copado-hx promote --env UAT --validate --watch[/primary]"
+                else:
+                    reply += "How would you like to proceed with committing or validating this scope inside the pipeline?"
                 
             console.print("\n")
             console.print(Panel(reply, title=f"[secondary]{agent_id.upper()} AGENT[/secondary]", border_style="cyan"))
