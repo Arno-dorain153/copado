@@ -66,26 +66,59 @@ Always append `--json` to commands when executing them programmatically to recei
 9. **STOP & Checkpoint**: If tests pass, ask the human developer: *"All tests passed. Shall I proceed to promote to UAT/Production?"*
 10. **Deploy**: Upon explicit confirmation, run `copado-hx deploy --env UAT --json`.
 
+### Playbook: Investigate a Failed Deployment
+*Use this when the developer says: "why did my deployment fail?", "fix my pipeline error."*
+
+1. **Get Failed Job**: Run `copado-hx status --json` to retrieve the failed job execution ID.
+2. **Analyze Blocker**: Run `copado-hx ai ask --agent release "Analyze the job execution error for <jobExecutionId>"`.
+3. **Present Root Cause**: Present the root cause and suggested fix to the developer.
+4. **Code Fix (Optional)**: If a code fix is needed, run `copado-hx ai ask --agent build "Fix the issue: <error summary>"`.
+
+### Playbook: Generate and Run a Test
+*Use this when the developer says: "write a test for my class", "test this feature."*
+
+1. **Generate Test Script**: Run `copado-hx ai ask --agent test "Generate a CRT QWord test script for <class/feature>"`.
+2. **Review Script**: Present the generated script to the developer for review.
+3. **STOP & Checkpoint**: Ask the developer: *"Shall I trigger this test suite?"*
+4. **Trigger test**: On approval, execute `copado-hx test run --suite <id> --json`.
+5. **Retrieve report**: Download test execution report cards: `copado-hx test results --execution <id> --json`.
+
 ---
 
 ## 5. Safety Guardrails (Non-Negotiable)
 
-🚫 **Never run `copado-hx deploy --env PROD` without explicit human confirmation.** Pause and ask the developer to confirm.
-🚫 **Never store or output API tokens** in logs, screen prompts, or comments.
-🚫 **Never assume or guess story IDs or branch names.** Query the database first.
-🚫 **Stop execution if a quality check fails.** Do not attempt promotions if code coverage is below 75% or test runs report errors.
-⚠️ **Limit consecutive pipeline modifying operations** (commits/promotions) to a maximum of 3 before asking for manual validation.
+🚫 **Never deploy to a PROD or production environment without explicit human confirmation.** Always pause and ask: "I'm about to deploy to PROD. Please confirm."
+🚫 **Never fabricate or guess IDs** (user story IDs, pipeline IDs, environment names, suite IDs). Always retrieve them from the CLI first.
+🚫 **Never run `copado-hx deploy` immediately after `copado-hx promote`** without checking test results and receiving human approval.
+🚫 **Never store or log API tokens** in any output, file, or message.
+🚫 **Never chain more than 3 destructive actions** (commit, promote, deploy) without a human checkpoint between each stage.
+⚠️ **Always surface test failures to the human** before proceeding to the next pipeline stage. Do not auto-retry failed tests.
 
 ---
 
 ## 6. Output Parsing Guide
 
-All commands support `--json`. Parse the returned structure using this key:
+All `copado-hx` commands support `--json` for structured output. Always use `--json` when parsing output programmatically.
 
-| Output Field | Status Value | Recommended Agent Action |
+| Field | Meaning | Agent Action |
 |---|---|---|
-| `status` | `"Completed Successfully"` | Proceed to next playbook step. |
-| `status` | `"Completed with Errors"` | STOP. Retrieve log details and display failures to developer. |
-| `status` | `"Failed"` | STOP. Invoke `copado-hx ai ask --agent release "Analyze failure error"` and report. |
-| `testResult` | `"Succeeded"` | Safe to proceed with pipeline promotion. |
-| `testResult` | `"Failed"` | Test failures found. Halt pipeline, present logs. |
+| `status: "Completed Successfully"` | Action succeeded | Proceed to next step |
+| `status: "Completed with Errors"` | Partial failure | Stop, surface errors to human |
+| `status: "In Progress"` | Still running | Poll again in 10 seconds |
+| `status: "Failed"` | Hard failure | Stop, invoke Release Agent for analysis |
+| `testResult: "Succeeded"` | All tests passed | Safe to proceed |
+| `testResult: "Failed"` | Tests failed | Stop, surface failures, do not deploy |
+
+---
+
+## 7. Agent Persona Routing
+
+When the developer's request maps to a DevOps lifecycle stage, route to the appropriate Copado AI agent using `copado-hx ai ask --agent <id>`:
+
+| Developer Says | Route to Agent |
+|---|---|
+| "Write a user story", "plan this feature", "check for conflicts" | `plan` |
+| "Write the code", "generate Apex", "review my class", "fix this bug" | `build` |
+| "Write a test", "generate test script", "improve coverage" | `test` |
+| "Deploy this", "promote to UAT", "why did it fail?", "release notes" | `release` |
+| "Write docs", "create training material", "change management plan" | `operate` |
