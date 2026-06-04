@@ -1,0 +1,242 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Copado Headless API",
+    "description": "API services exposing Copado DevOps orchestration and AI agents for Salesforce Agentforce integration.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.copado-hx.robotic.copado.com/v1",
+      "description": "Copado Headless production endpoint gateway"
+    }
+  ],
+  "paths": {
+    "/auth/status": {
+      "get": {
+        "summary": "Retrieve connection status",
+        "description": "Checks the active authentication profile and target Salesforce org connection info.",
+        "operationId": "getAuthStatus",
+        "responses": {
+          "200": {
+            "description": "Successful check",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "username": { "type": "string" },
+                    "orgId": { "type": "string" },
+                    "environment": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stories": {
+      "get": {
+        "summary": "List User Stories",
+        "description": "Gets all assigned user stories filtered by status or pipeline.",
+        "operationId": "listUserStories",
+        "parameters": [
+          {
+            "name": "pipeline",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of stories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string" },
+                      "title": { "type": "string" },
+                      "status": { "type": "string" },
+                      "environment": { "type": "string" },
+                      "developer": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/commit": {
+      "post": {
+        "summary": "Commit metadata to story",
+        "description": "Stages and commits specific metadata components to a user story git branch.",
+        "operationId": "commitChanges",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["message"],
+                "properties": {
+                  "us": { "type": "string", "description": "User Story ID" },
+                  "message": { "type": "string", "description": "Commit message" },
+                  "files": { "type": "array", "items": { "type": "string" }, "description": "List of Salesforce metadata files" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful commit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "commitId": { "type": "string" },
+                    "userStory": { "type": "string" },
+                    "filesCommitted": { "type": "array", "items": { "type": "string" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/promote": {
+      "post": {
+        "summary": "Promote user story",
+        "description": "Triggers a pipeline job execution to promote and deploy changes to the next environment stage.",
+        "operationId": "promoteStory",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["env"],
+                "properties": {
+                  "us": { "type": "string", "description": "User Story ID" },
+                  "env": { "type": "string", "description": "Target Environment" },
+                  "validate": { "type": "boolean", "description": "Validation only check run" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Job successfully triggered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "promotionId": { "type": "string" },
+                    "jobExecutionId": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test/run": {
+      "post": {
+        "summary": "Run Robotic Tests",
+        "description": "Initiates a Copado Robotic Testing (CRT) cloud run on specified suites.",
+        "operationId": "runRoboticTests",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["suiteId"],
+                "properties": {
+                  "suiteId": { "type": "string", "description": "Robotic test Job ID" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tests triggered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string" },
+                    "executionId": { "type": "string" },
+                    "suiteName": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/analyze-logs": {
+      "post": {
+        "summary": "Analyze deployment logs",
+        "description": "Utilizes the AI Risk Engine to scan log logs, detect failures, and recommend rollbacks.",
+        "operationId": "analyzeLogs",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["logText"],
+                "properties": {
+                  "logText": { "type": "string", "description": "The raw deployment logs" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Risk report compiled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "risk_score": { "type": "integer" },
+                    "anomalies": { "type": "array", "items": { "type": "string" } },
+                    "rollback_suggested": { "type": "boolean" },
+                    "details": { "type": "array", "items": { "type": "string" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
